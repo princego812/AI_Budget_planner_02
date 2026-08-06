@@ -3,7 +3,6 @@ import pandas as pd
 from google import genai
 import time
 import json
-import re
 
 # --- Page Configuration ---
 st.set_page_config(page_title="FinAI | Smart Wealth", page_icon="🟢", layout="wide")
@@ -164,4 +163,89 @@ if st.button("Auto-Balance My Budget"):
             """
             try:
                 response = client.models.generate_content(model="gemini-3.5-flash", contents=prompt)
-                raw_text = re.sub(r'```json|
+                
+                # SAFELY parse the JSON response (fixed the SyntaxError here)
+                raw_text = response.text.replace("```json", "").replace("```", "").strip()
+                start = raw_text.find('[')
+                end = raw_text.rfind(']') + 1
+                
+                st.session_state.expenses_df = pd.DataFrame(json.loads(raw_text[start:end]))
+                st.rerun()
+            except Exception as e:
+                st.error(f"Failed to auto-allocate: {e}")
+
+# --- 3. Interactive Data Grid ---
+st.subheader("Expense Breakdown")
+edited_df = st.data_editor(st.session_state.expenses_df, num_rows="dynamic", use_container_width=True)
+st.session_state.expenses_df = edited_df
+
+# --- Calculations ---
+total_allocated = edited_df["Amount"].sum()
+unallocated_balance = income - total_allocated
+savings_mask = edited_df["Category"].str.contains("invest|sav|emergency", case=False, na=False)
+actual_savings = edited_df.loc[savings_mask, "Amount"].sum() + (unallocated_balance if unallocated_balance > 0 else 0)
+
+# --- 4. The Green Globe Dashboard ---
+st.markdown("---")
+st.markdown(f"""
+<div class="globe-container">
+    <div class="globe">
+        <div class="globe-text">{currency_sym}{actual_savings:,.0f}</div>
+    </div>
+    <div class="globe-label">Total Wealth Secured</div>
+</div>
+""", unsafe_allow_html=True)
+
+col3, col4 = st.columns(2)
+col3.metric("Total Allocated", f"{currency_sym}{total_allocated:,.2f}")
+col4.metric("Unallocated (Zero-Based)", f"{currency_sym}{unallocated_balance:,.2f}")
+
+# --- 5. Quick AI Chat Assistant ---
+st.markdown("---")
+st.subheader("Quick Chat with FinAI")
+st.caption("Ask quick financial questions. I will reply in the absolute minimum sentences needed.")
+
+# Initialize chat history
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# Display chat history
+for message in st.session_state.chat_history:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Chat Input
+if prompt := st.chat_input("Ask about your budget, investments, or travel hacks..."):
+    if not api_key:
+        st.error("Please enter your Gemini API Key in the sidebar to chat.")
+    else:
+        st.session_state.chat_history.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        expense_str = edited_df.to_string(index=False)
+        system_context = f"""
+        You are FinAI, a precise financial assistant.
+        User's current budget data:
+        Income: {currency_sym}{income} | Savings/Investments: {currency_sym}{actual_savings}
+        Breakdown: {expense_str}
+        
+        CRITICAL INSTRUCTION: You must answer in the ABSOLUTE MINIMUM sentences needed. Be incredibly brief, direct, and ruthless with your word count.
+        """
+
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                try:
+                    client = genai.Client(api_key=api_key)
+                    full_prompt = f"{system_context}\n\nUser Question: {prompt}"
+                    
+                    response = client.models.generate_content(
+                        model="gemini-3.5-flash",
+                        contents=full_prompt
+                    )
+                    
+                    st.markdown(response.text)
+                    st.session_state.chat_history.append({"role": "assistant", "content": response.text})
+                    
+                except Exception as e:
+                    st.error(f"Chat API Error: {e}")
