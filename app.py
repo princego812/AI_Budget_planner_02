@@ -6,158 +6,118 @@ import json
 import re
 
 # --- Page Configuration ---
-st.set_page_config(page_title="FinAI | Smart Wealth", page_icon="🎵", layout="wide")
+st.set_page_config(page_title="FinAI | Budget Studio", page_icon="🎧", layout="wide")
 
-# --- Custom Spotify UI/UX CSS ---
+# --- Custom High UI/UX CSS (Deep Black, White, & Vibrant Green Theme) ---
 st.markdown("""
 <style>
-    /* Spotify Core Palette */
-    :root {
-        --spotify-black: #000000;
-        --spotify-bg: #121212;
-        --spotify-surface: #181818;
-        --spotify-surface-hover: #282828;
-        --spotify-green: #1DB954;
-        --spotify-green-hover: #1ED760;
-        --spotify-text-primary: #FFFFFF;
-        --spotify-text-secondary: #B3B3B3;
-    }
-
-    /* Main App Background */
+    /* Global Theme - Deep Black */
     .stApp {
-        background-color: var(--spotify-bg);
-        color: var(--spotify-text-primary);
-        font-family: 'Circular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background-color: #121212;
+        color: #FFFFFF;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     }
     
-    /* Sidebar (Pure Black like Spotify Desktop) */
-    [data-testid="stSidebar"] {
-        background-color: var(--spotify-black) !important;
+    /* Text Readability (White and Light Gray) */
+    p, .stMarkdown, label, .stMetric label {
+        color: #B3B3B3 !important; /* Light gray for secondary text */
     }
     
-    /* Typography Overrides */
-    h1, h2, h3, .st-emotion-cache-1629p8f h1 {
-        color: var(--spotify-text-primary) !important;
+    /* Headers (Stark White) */
+    h1, h2, h3 {
+        color: #FFFFFF !important; 
         font-weight: 700 !important;
         letter-spacing: -0.04em;
     }
-    p, label, .st-emotion-cache-1n76uvr {
-        color: var(--spotify-text-secondary) !important;
+    
+    /* Accent Color - Vibrant Green */
+    .accent-text {
+        color: #1ED760 !important;
     }
     
-    /* Input Fields */
-    .stNumberInput input, .stTextInput input, .stSelectbox div[data-baseweb="select"] {
-        background-color: var(--spotify-surface) !important;
-        color: var(--spotify-text-primary) !important;
-        border: 1px solid transparent !important;
-        border-radius: 4px !important;
-    }
-    .stNumberInput input:focus, .stTextInput input:focus {
-        border: 1px solid var(--spotify-text-secondary) !important;
-    }
-    
-    /* Buttons (The Spotify Play/Action Button) */
+    /* Buttons - Pill Shaped */
     .stButton>button {
-        background-color: var(--spotify-green) !important;
-        color: var(--spotify-black) !important;
+        background-color: #1ED760 !important;
+        color: #000000 !important;
         border: none !important;
-        border-radius: 500px !important; /* Fully rounded */
+        border-radius: 500px !important; /* Perfect pill shape */
         font-weight: 700 !important;
         padding: 0.5rem 2rem !important;
-        text-transform: none !important;
-        transition: transform 0.1s ease, background-color 0.2s ease !important;
+        transition: transform 0.2s ease, background-color 0.2s ease !important;
     }
     .stButton>button:hover {
-        background-color: var(--spotify-green-hover) !important;
+        background-color: #1fdf64 !important; /* Slightly lighter green on hover */
         transform: scale(1.04);
     }
 
-    /* DataFrame / Data Editor (Like a Tracklist) */
+    /* DataFrame / Data Editor Container */
     [data-testid="stDataFrame"] {
-        background-color: var(--spotify-surface);
+        background-color: #181818;
         border-radius: 8px;
         padding: 10px;
-        border: none;
-    }
-    
-    /* Divider Lines */
-    hr {
-        border-color: var(--spotify-surface-hover) !important;
+        border: 1px solid #282828;
     }
 
-    /* Artist Profile Style Savings Visual */
-    .artist-profile-container {
+    /* Metric Values */
+    [data-testid="stMetricValue"] {
+        color: #FFFFFF !important;
+        font-weight: 800 !important;
+    }
+
+    /* Glowing Green Savings Ring (Record Vibe) */
+    .globe-container {
         display: flex;
         justify-content: center;
         align-items: center;
         flex-direction: column;
-        margin: 3rem 0;
+        margin: 2rem 0;
     }
-    .artist-circle {
-        width: 200px;
-        height: 200px;
+    .globe {
+        width: 180px;
+        height: 180px;
         border-radius: 50%;
-        background-color: var(--spotify-surface);
-        border: 4px solid var(--spotify-green);
+        background: #181818;
+        border: 6px solid #1ED760;
+        box-shadow: 0 0 30px rgba(30, 215, 96, 0.3);
         display: flex;
         justify-content: center;
         align-items: center;
         text-align: center;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        transition: transform 0.3s ease;
+        position: relative;
     }
-    .artist-circle:hover {
-        transform: scale(1.02);
-    }
-    .artist-stat {
-        color: var(--spotify-text-primary);
-        font-size: 2rem;
+    .globe-text {
+        position: absolute;
+        color: #FFFFFF;
+        font-size: 1.8rem;
         font-weight: 800;
-        margin: 0;
+        z-index: 2;
     }
-    .artist-label {
+    .globe-label {
         margin-top: 15px;
         font-size: 0.9rem;
-        color: var(--spotify-text-secondary);
-        font-weight: 700;
+        color: #B3B3B3;
+        font-weight: bold;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
-    }
-    
-    /* Metrics overriding */
-    [data-testid="stMetricValue"] {
-        color: var(--spotify-text-primary) !important;
-        font-weight: 700 !important;
-    }
-    [data-testid="stMetricLabel"] {
-        color: var(--spotify-text-secondary) !important;
-    }
-    
-    /* Info Box */
-    .stAlert {
-        background-color: var(--spotify-surface) !important;
-        color: var(--spotify-text-primary) !important;
-        border: none !important;
-        border-radius: 8px !important;
+        letter-spacing: 2px;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # --- Sidebar Configuration ---
-st.sidebar.title("FinAI Premium")
+st.sidebar.title("📻 FinAI Studio")
 
-st.sidebar.subheader("ℹ️ About")
+st.sidebar.subheader("ℹ️ About the App")
 st.sidebar.info(
-    "A next-gen personal finance hub tuned to your rhythm. Allocate funds, "
-    "track daily expenses, and chat with an AI advisor to optimize your wealth."
+    "A sleek, high-fidelity personal finance hub. Allocate funds intelligently, "
+    "track daily expenses, and chat with an AI advisor to optimize your rhythm of wealth. 🎶"
 )
 
-st.sidebar.subheader("🛠️ Your Stack")
+st.sidebar.subheader("🛠️ Tech Stack")
 st.sidebar.code("""
 - Frontend: Streamlit
-- Theme: Spotify Dark Mode
-- Engine: Pandas
-- AI: Gemini 3.5 Flash
+- Theme: Deep Black & Vibrant Green
+- Data Grid: Pandas
+- AI Engine: Gemini 3.5 Flash
 """, language="markdown")
 
 st.sidebar.divider()
@@ -168,7 +128,7 @@ currency_choice = st.sidebar.selectbox("Select Currency", ["USD ($)", "INR (₹)
 currency_sym = st.text_input("Custom Symbol", value="¤") if currency_choice == "Custom" else currency_choice.split("(")[1].replace(")", "")
 
 # --- 1. Core Inputs ---
-st.title("Your Financial Playlist")
+st.title("🎵 AI Budget Studio 🎧")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -176,7 +136,7 @@ with col1:
 with col2:
     savings_goal = st.number_input(f"Savings Target ({currency_sym})", min_value=0.0, value=1000.0, step=100.0)
 
-# Initialize DataFrame
+# Initialize DataFrame with 'Traveling' expense added
 if "expenses_df" not in st.session_state:
     st.session_state.expenses_df = pd.DataFrame([
         {"Category": "Housing", "Amount": 1500.0},
@@ -189,12 +149,12 @@ if "expenses_df" not in st.session_state:
     ])
 
 # --- 2. Auto-Allocate Button ---
-st.subheader("Discover Weekly: AI Auto-Allocator")
-if st.button("Auto-Balance My Budget", use_container_width=True):
+st.subheader("🎛️ AI Auto-Mixer (Allocator)")
+if st.button("Auto-Balance My Budget"):
     if not api_key:
-        st.warning("API Key required in the sidebar.")
+        st.warning("API Key required in the sidebar to remix your budget.")
     else:
-        with st.spinner("Curating your perfect zero-based budget..."):
+        with st.spinner("Mixing the perfect zero-based budget..."):
             client = genai.Client(api_key=api_key)
             prompt = f"""
             Income: {income}. Create a realistic budget. 
@@ -203,6 +163,7 @@ if st.button("Auto-Balance My Budget", use_container_width=True):
             Respond ONLY with a JSON array. Example: [{{"Category": "Housing", "Amount": 1500.0}}]
             """
             try:
+                # Requesting gemini-3.5-flash
                 response = client.models.generate_content(model="gemini-3.5-flash", contents=prompt)
                 raw_text = re.sub(r'```json|```', '', response.text).strip()
                 start, end = raw_text.find('['), raw_text.rfind(']') + 1
@@ -211,8 +172,8 @@ if st.button("Auto-Balance My Budget", use_container_width=True):
             except Exception as e:
                 st.error(f"Failed to auto-allocate: {e}")
 
-# --- 3. Interactive Data Grid (The Tracklist) ---
-st.subheader("Your Expense Tracklist")
+# --- 3. Interactive Data Grid ---
+st.subheader("🎚️ Expense Playlist")
 edited_df = st.data_editor(st.session_state.expenses_df, num_rows="dynamic", use_container_width=True)
 st.session_state.expenses_df = edited_df
 
@@ -222,42 +183,47 @@ unallocated_balance = income - total_allocated
 savings_mask = edited_df["Category"].str.contains("invest|sav|emergency", case=False, na=False)
 actual_savings = edited_df.loc[savings_mask, "Amount"].sum() + (unallocated_balance if unallocated_balance > 0 else 0)
 
-# --- 4. The Profile Dashboard ---
+# --- 4. The Glowing Savings Ring Dashboard ---
 st.markdown("---")
 st.markdown(f"""
-<div class="artist-profile-container">
-    <div class="artist-circle">
-        <div class="artist-stat">{currency_sym}{actual_savings:,.0f}</div>
+<div class="globe-container">
+    <div class="globe">
+        <div class="globe-text">{currency_sym}{actual_savings:,.0f}</div>
     </div>
-    <div class="artist-label">Total Wealth Secured</div>
+    <div class="globe-label">Total Wealth Secured</div>
 </div>
 """, unsafe_allow_html=True)
 
+st.write("") # Spacer
 col3, col4 = st.columns(2)
 col3.metric("Total Allocated", f"{currency_sym}{total_allocated:,.2f}")
 col4.metric("Unallocated (Zero-Based)", f"{currency_sym}{unallocated_balance:,.2f}")
 
 # --- 5. Quick AI Chat Assistant ---
 st.markdown("---")
-st.subheader("Chat with FinAI")
-st.caption("Drop a question. I'll answer in the absolute minimum sentences.")
+st.subheader("🎙️ Live AI Chat Session")
+st.caption("Ask quick financial questions. I will reply in the absolute minimum sentences needed.")
 
 # Initialize chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+# Display chat history
 for message in st.session_state.chat_history:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+# Chat Input
 if prompt := st.chat_input("Ask about your budget, investments, or travel hacks..."):
     if not api_key:
         st.error("Please enter your Gemini API Key in the sidebar to chat.")
     else:
+        # Add user message to history
         st.session_state.chat_history.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
+        # Prepare context for the AI
         expense_str = edited_df.to_string(index=False)
         system_context = f"""
         You are FinAI, a precise financial assistant.
@@ -268,8 +234,9 @@ if prompt := st.chat_input("Ask about your budget, investments, or travel hacks.
         CRITICAL INSTRUCTION: You must answer in the ABSOLUTE MINIMUM sentences needed. Be incredibly brief, direct, and ruthless with your word count.
         """
 
+        # Call Gemini 3.5 Flash
         with st.chat_message("assistant"):
-            with st.spinner("Analyzing audio... I mean, finances..."):
+            with st.spinner("Tuning the response..."):
                 try:
                     client = genai.Client(api_key=api_key)
                     full_prompt = f"{system_context}\n\nUser Question: {prompt}"
