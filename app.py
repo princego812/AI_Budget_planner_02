@@ -6,227 +6,193 @@ import json
 import re
 
 # --- Page Configuration ---
-st.set_page_config(page_title="FinAI | Smart Wealth", page_icon="✨", layout="wide")
+st.set_page_config(page_title="FinAI Planner", page_icon="💎", layout="wide")
 
-# --- Sidebar: Navigation & Info ---
-st.sidebar.title("🧭 Navigation")
-page = st.sidebar.radio("Go to", ["🏠 Home (Landing Page)", "💻 Budget Planner"])
-
-st.sidebar.divider()
-
-# About the App & Tech Stack
-st.sidebar.subheader("ℹ️ About the App")
-st.sidebar.info(
-    "FinAI is an intelligent personal finance manager. "
-    "It uses artificial intelligence to auto-allocate your income into a zero-based budget "
-    "and provides tailored investment strategies."
-)
-
-st.sidebar.subheader("🛠️ Tech Stack")
-st.sidebar.code("""
-- Frontend: Streamlit (Python)
-- Data Grid: Pandas
-- AI Engine: Google Gemini 2.5
-- Logic: Rule-based calculations
-""", language="markdown")
-
-st.sidebar.divider()
-api_key = st.sidebar.text_input("🔑 Gemini API Key", type="password", help="Required for the Budget Planner")
-
-
-# ==========================================
-# PAGE 1: LANDING PAGE
-# ==========================================
-if page == "🏠 Home (Landing Page)":
-    # Advanced Custom CSS for the Landing Page
-    st.markdown("""
-    <style>
-        .stApp {
-            background-color: #0E1117;
-            color: #FAFAFA;
-        }
-        .hero-container {
-            text-align: center;
-            padding: 5rem 2rem;
-            background: linear-gradient(135deg, #1f2937 0%, #000000 100%);
-            border-radius: 20px;
-            margin-bottom: 3rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .hero-title {
-            font-size: 4rem;
-            font-weight: 800;
-            background: -webkit-linear-gradient(45deg, #4F46E5, #06B6D4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 1rem;
-        }
-        .hero-subtitle {
-            font-size: 1.5rem;
-            color: #9CA3AF;
-            margin-bottom: 2.5rem;
-        }
-        .feature-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 2rem;
-            border-radius: 15px;
-            text-align: center;
-            height: 100%;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="hero-container">
-        <div class="hero-title">Take Control of Your Wealth</div>
-        <div class="hero-subtitle">The first AI-powered personal budget planner that actively optimizes your financial future.</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.info("👈 Open the sidebar and click **'💻 Budget Planner'** to launch the application.")
-
-    st.divider()
-    st.markdown("<h2 style='text-align: center; margin-bottom: 2rem;'>Why Choose FinAI?</h2>", unsafe_allow_html=True)
-
-    col_feat1, col_feat2, col_feat3 = st.columns(3)
-    with col_feat1:
-        st.markdown("""
-        <div class="feature-card">
-            <h1 style="margin:0;">🧠</h1>
-            <h3>AI Auto-Allocation</h3>
-            <p style="color:#9CA3AF;">Let Gemini automatically distribute your income into a perfectly balanced, zero-based budget.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_feat2:
-        st.markdown("""
-        <div class="feature-card">
-            <h1 style="margin:0;">📊</h1>
-            <h3>Real-Time Tracking</h3>
-            <p style="color:#9CA3AF;">Adjust expenses on the fly in the data grid and instantly see the impact on your goals.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_feat3:
-        st.markdown("""
-        <div class="feature-card">
-            <h1 style="margin:0;">📈</h1>
-            <h3>Investment Advisory</h3>
-            <p style="color:#9CA3AF;">Get smart recommendations on where to invest your savings (Index funds, Stocks, FDs, etc.).</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-
-# ==========================================
-# PAGE 2: BUDGET PLANNER APP
-# ==========================================
-elif page == "💻 Budget Planner":
-    st.title("💸 AI Personal Budget Planner")
+# --- High-End UI/UX Custom CSS ---
+st.markdown("""
+<style>
+    /* Import Google Font */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
     
-    # Currency Selector
-    col_curr, _ = st.columns([1, 3])
-    with col_curr:
-        currency_choice = st.selectbox("Select Currency", ["USD ($)", "INR (₹)", "EUR (€)", "GBP (£)", "Custom"])
-        currency_sym = st.text_input("Custom Symbol", value="¤") if currency_choice == "Custom" else currency_choice.split("(")[1].replace(")", "")
+    /* Background Image and Base Styles */
+    .stApp {
+        background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), 
+                    url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        font-family: 'Inter', sans-serif;
+        color: #F8FAFC;
+    }
+    
+    /* Glassmorphism for Metrics and Containers */
+    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+        color: #F8FAFC !important;
+    }
+    [data-testid="stMetric"] {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-5px);
+        border-color: #06B6D4;
+    }
+    
+    /* Headers and Text */
+    h1, h2, h3 {
+        color: #E2E8F0 !important;
+        font-weight: 600;
+    }
+    .glow-text {
+        background: -webkit-linear-gradient(45deg, #06B6D4, #3B82F6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+        font-size: 2.5rem;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-    # --- 1. Income & Goals ---
-    st.subheader("1. Income & Goals")
-    col1, col2 = st.columns(2)
-    with col1:
+# --- Sidebar Configuration ---
+with st.sidebar:
+    st.markdown("<h2>⚙️ Settings</h2>", unsafe_allow_html=True)
+    api_key = st.text_input("🔑 Gemini API Key", type="password", help="Required for AI features")
+    st.divider()
+    currency_choice = st.selectbox("Select Currency", ["USD ($)", "INR (₹)", "EUR (€)", "GBP (£)", "Custom"])
+    if currency_choice == "Custom":
+        currency_sym = st.text_input("Custom Symbol", value="¤")
+    else:
+        currency_sym = currency_choice.split("(")[1].replace(")", "")
+    
+    st.divider()
+    st.caption("Built with Streamlit & Gemini 2.5 Flash")
+
+# --- App Header ---
+st.markdown('<div class="glow-text">💎 AI Wealth Dashboard</div>', unsafe_allow_html=True)
+st.write("Manage your cash flow, automate allocations, and chat directly with your AI financial advisor.")
+
+# --- State Management for Budget & Chat ---
+if "expenses_df" not in st.session_state:
+    st.session_state.expenses_df = pd.DataFrame([
+        {"Category": "Housing", "Amount": 1500.0},
+        {"Category": "Groceries", "Amount": 400.0},
+        {"Category": "Utilities", "Amount": 200.0},
+        {"Category": "Fun Money", "Amount": 300.0},
+        {"Category": "Investments", "Amount": 300.0},
+        {"Category": "Emergency Fund", "Amount": 100.0},
+    ])
+if "messages" not in st.session_state:
+    st.session_state.messages = [{"role": "assistant", "content": "Hello! I am your AI financial advisor. How can I help optimize your money today?"}]
+
+# --- Navigation Tabs ---
+tab_dashboard, tab_chat = st.tabs(["📊 Budget Dashboard", "💬 FinChat (AI Advisor)"])
+
+# ==========================================
+# TAB 1: DASHBOARD
+# ==========================================
+with tab_dashboard:
+    col_inc, col_sav = st.columns(2)
+    with col_inc:
         income = st.number_input(f"Monthly Income ({currency_sym})", min_value=0.0, value=5000.0, step=100.0)
-    with col2:
+    with col_sav:
         savings_goal = st.number_input(f"Monthly Savings Goal ({currency_sym})", min_value=0.0, value=1000.0, step=100.0)
 
-    # Initialize default dataframe in session state
-    if "expenses_df" not in st.session_state:
-        st.session_state.expenses_df = pd.DataFrame([
-            {"Category": "Housing", "Amount": 1500.0},
-            {"Category": "Groceries", "Amount": 400.0},
-            {"Category": "Utilities", "Amount": 200.0},
-            {"Category": "Fun Money", "Amount": 300.0},
-            {"Category": "Investments", "Amount": 300.0},
-            {"Category": "Emergency Fund", "Amount": 100.0},
-        ])
+    # Core Calculations
+    total_allocated = st.session_state.expenses_df["Amount"].sum()
+    unallocated = income - total_allocated
+    savings_mask = st.session_state.expenses_df["Category"].str.contains("invest|sav|emergency", case=False, na=False)
+    actual_savings = st.session_state.expenses_df.loc[savings_mask, "Amount"].sum() + (unallocated if unallocated > 0 else 0)
 
-    # --- 2. AI Auto-Allocator ---
-    st.subheader("2. ✨ AI Budget Allocator")
-    if st.button("Auto-Allocate My Budget"):
+    # Metrics Display
+    st.write("### 📈 Live Overview")
+    met1, met2, met3 = st.columns(3)
+    met1.metric("Total Allocated", f"{currency_sym}{total_allocated:,.2f}")
+    met2.metric("Unallocated Balance", f"{currency_sym}{unallocated:,.2f}", "Aim for 0")
+    met3.metric("Goal Progress", f"{(actual_savings / savings_goal * 100) if savings_goal > 0 else 0:.1f}%")
+
+    st.divider()
+
+    # Data & AI Allocation
+    col_table, col_ai = st.columns([2, 1])
+    
+    with col_table:
+        st.write("### 📝 Edit Expenses")
+        edited_df = st.data_editor(st.session_state.expenses_df, num_rows="dynamic", use_container_width=True)
+        st.session_state.expenses_df = edited_df
+
+    with col_ai:
+        st.write("### ✨ AI Auto-Allocator")
+        st.write("Let Gemini calculate a balanced, zero-based budget for your income instantly.")
+        if st.button("Auto-Allocate My Money", use_container_width=True):
+            if not api_key:
+                st.error("Please provide your API key in the sidebar.")
+            else:
+                with st.spinner("Calculating..."):
+                    client = genai.Client(api_key=api_key)
+                    prompt = f"""
+                    Income: {income}. Create a realistic monthly budget balancing standard living costs with "Fun Money", "Investments", and "Emergency Fund". Total MUST equal exactly {income}. Return ONLY a raw JSON array.
+                    Example: [{{"Category": "Housing", "Amount": 1500.0}}]
+                    """
+                    try:
+                        res = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+                        raw = re.sub(r'```json|```', '', res.text).strip()
+                        s, e = raw.find('['), raw.rfind(']') + 1
+                        st.session_state.expenses_df = pd.DataFrame(json.loads(raw[s:e]))
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+
+# ==========================================
+# TAB 2: FINCHAT (AI ADVISOR)
+# ==========================================
+with tab_chat:
+    st.write("### 💬 Ask FinAI")
+    st.caption("Get extremely concise, instant advice based on your current budget data.")
+    
+    # Render chat history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Chat Input
+    if prompt := st.chat_input("E.g., Where should I invest my emergency fund?"):
+        # Display user message
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Generate Assistant Response
         if not api_key:
-            st.warning("Please enter your Gemini API Key in the sidebar.")
+            with st.chat_message("assistant"):
+                st.error("Please enter your Gemini API Key in the sidebar to chat.")
         else:
-            with st.spinner("AI is calculating the optimal allocation..."):
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
                 client = genai.Client(api_key=api_key)
-                prompt = f"""
-                Based on an income of {income}, create a realistic monthly budget. 
-                Include standard categories but MUST include "Fun Money", "Investments", and "Emergency Fund".
-                Ensure total equals exactly {income}.
-                Respond STRICTLY with a raw JSON array of objects.
-                Example: [{{"Category": "Housing", "Amount": 1500.0}}]
+                
+                # Bundle current budget stats to give the AI context
+                context = f"""
+                User's Live Budget Context:
+                Income: {currency_sym}{income} | Goal: {currency_sym}{savings_goal}
+                Unallocated: {currency_sym}{unallocated}
+                Current Expenses Breakdown:
+                {st.session_state.expenses_df.to_string(index=False)}
+                
+                SYSTEM RULE: You are a direct, no-nonsense financial AI. You MUST answer the user's prompt using the ABSOLUTE MINIMUM number of sentences possible. Do not use fluff. Get straight to the point.
                 """
                 
                 try:
-                    response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
-                    raw_text = re.sub(r'```json|```', '', response.text).strip()
-                    start, end = raw_text.find('['), raw_text.rfind(']') + 1
-                    st.session_state.expenses_df = pd.DataFrame(json.loads(raw_text[start:end]))
-                    st.rerun()
+                    response = client.models.generate_content(
+                        model="gemini-3.5-flash", 
+                        contents=f"{context}\n\nUser Question: {prompt}"
+                    )
+                    message_placeholder.markdown(response.text)
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
                 except Exception as e:
-                    st.error(f"Failed to auto-allocate. Error: {e}")
-
-    # --- 3. Monthly Expenses (Interactive Table) ---
-    st.subheader("3. Monthly Expenses")
-    edited_df = st.data_editor(st.session_state.expenses_df, num_rows="dynamic", use_container_width=True)
-    st.session_state.expenses_df = edited_df
-
-    # --- 4. Budget Summary ---
-    st.subheader("4. Budget Summary")
-    total_allocated = edited_df["Amount"].sum()
-    unallocated_balance = income - total_allocated
-
-    savings_mask = edited_df["Category"].str.contains("invest|sav|emergency", case=False, na=False)
-    actual_savings = edited_df.loc[savings_mask, "Amount"].sum() + (unallocated_balance if unallocated_balance > 0 else 0)
-    
-    col3, col4, col5 = st.columns(3)
-    col3.metric("Total Allocated", f"{currency_sym}{total_allocated:,.2f}")
-    col4.metric("Unallocated Balance", f"{currency_sym}{unallocated_balance:,.2f}", "Aim for $0 (Zero-Based)")
-    col5.metric("Goal Progress", f"{(actual_savings / savings_goal * 100) if savings_goal > 0 else 0:.1f}%", f"{currency_sym}{actual_savings:,.2f} tracking to savings")
-
-    # --- 5. AI Financial Advisor & Investment Guide ---
-    st.subheader("5. 🤖 AI Financial Advisor & Investment Guide")
-    if st.button("Generate Advisory Report"):
-        if not api_key:
-            st.warning("Please enter your Gemini API Key in the sidebar.")
-        else:
-            with st.spinner("Analyzing your finances and generating investment strategies..."):
-                client = genai.Client(api_key=api_key)
-                expense_str = edited_df.to_string(index=False)
-                
-                # UPDATED PROMPT: Now explicitly asks for Investment Advice based on currency
-                prompt = f"""
-                You are an expert financial advisor. Analyze this monthly budget:
-                - Currency: {currency_sym}
-                - Monthly Income: {currency_sym}{income}
-                - Total Allocated: {currency_sym}{total_allocated}
-                - Expenses:
-                {expense_str}
-                
-                Please provide:
-                1. **Budget Health Check:** Evaluate the allocation. Is it balanced?
-                2. **Optimization Steps:** 3 actionable tips to improve this specific budget.
-                3. **Investment Advisory:** Based on their budget size and currency ({currency_sym}), advise EXACTLY where they should put the money labeled 'Investments' or 'Emergency Fund' (e.g., specific asset classes like S&P 500 Index Funds, local Mutual Funds, Fixed Deposits, Gold, etc.).
-                
-                Format cleanly using markdown bullet points.
-                """
-                
-                for attempt in range(3):
-                    try:
-                        response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
-                        st.info("📈 Your Personal Financial Report")
-                        st.write(response.text)
-                        break
-                    except Exception as e:
-                        if "503" in str(e) and attempt < 2:
-                            time.sleep(2 ** (attempt + 1))
-                        else:
-                            st.error(f"API Error: {e}")
-                            break
+                    message_placeholder.error(f"Failed to connect to AI: {e}")
