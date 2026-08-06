@@ -99,6 +99,26 @@ st.markdown("""
         0% { box-shadow: 0 0 30px rgba(29, 185, 84, 0.2); transform: scale(1); }
         100% { box-shadow: 0 0 50px rgba(29, 185, 84, 0.5); transform: scale(1.02); }
     }
+    
+    /* --- Chat Input Box Customization --- */
+    /* Make the chat input background white so black text is visible */
+    [data-testid="stChatInput"] {
+        background-color: #FFFFFF !important;
+        border-radius: 12px;
+    }
+    /* Make the font color black inside the typing area */
+    [data-testid="stChatInput"] textarea {
+        color: #000000 !important;
+        font-weight: 500;
+    }
+    /* Make the send icon/button black so it contrasts against the white */
+    [data-testid="stChatInput"] button {
+        color: #000000 !important;
+    }
+    /* Placeholder text styling (light gray so it doesn't clash) */
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: #666666 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -164,7 +184,7 @@ if st.button("Auto-Balance My Budget"):
             try:
                 response = client.models.generate_content(model="gemini-3.5-flash", contents=prompt)
                 
-                # SAFELY parse the JSON response (fixed the SyntaxError here)
+                # SAFELY parse the JSON response
                 raw_text = response.text.replace("```json", "").replace("```", "").strip()
                 start = raw_text.find('[')
                 end = raw_text.rfind(']') + 1
