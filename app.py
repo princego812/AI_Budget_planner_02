@@ -132,7 +132,7 @@ st.sidebar.code("""
 - Frontend: Streamlit
 - UI/UX: Dark Mode Custom CSS
 - Engine: Pandas
-- AI: Gemini 2.5 Flash
+- AI: Gemini 3.5 Flash
 """, language="markdown")
 
 st.sidebar.divider()
@@ -179,8 +179,8 @@ if st.button("Auto-Balance My Budget", type="primary"):
             Example: [{{"Category": "Housing", "Amount": 1500.0}}]
             """
             try:
-                # Updated to gemini-2.5-flash as the current standard fast model
-                response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+                # Updated to gemini-3.5-flash as the current standard fast model
+                response = client.models.generate_content(model="gemini-3.5-flash", contents=prompt)
                 
                 # Safely parse JSON using regex to handle markdown wrappers
                 match = re.search(r'\[.*\]', response.text, re.DOTALL)
@@ -267,7 +267,7 @@ if prompt := st.chat_input("Ask about your budget, investments, or travel hacks.
                     full_prompt = f"{system_context}\n\nUser Question: {prompt}"
                     
                     response = client.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model="gemini-3.5-flash",
                         contents=full_prompt
                     )
                     
