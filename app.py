@@ -1,481 +1,453 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from google import genai
 import json
 import re
 import time
-from datetime import datetime
-import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from google import genai
 
 # ==========================================
-# 1. PAGE CONFIGURATION & SETUP
+# 1. PAGE CONFIGURATION & METADATA
 # ==========================================
 st.set_page_config(
-    page_title="FinAI | Smart Wealth OS", 
-    page_icon="🟢", 
+    page_title="FinAI | Enterprise Wealth Terminal", 
+    page_icon="💠", 
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ==========================================
-# 2. MASSIVE CUSTOM CSS OVERHAUL
+# 2. ADVANCED CSS INJECTION (UI/UX)
 # ==========================================
-st.markdown("""
-<style>
-    /* Global Typography & Deep Dark Theme */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
-    
-    :root {
-        --primary: #1DB954;
-        --primary-glow: rgba(29, 185, 84, 0.4);
-        --bg-base: #090B0F;
-        --bg-panel: rgba(22, 26, 37, 0.7);
-        --text-main: #FAFAFA;
-        --text-muted: #8B949E;
-        --border-color: rgba(255, 255, 255, 0.08);
-    }
-    
-    .stApp { 
-        background-color: var(--bg-base); 
-        color: var(--text-main); 
-        font-family: 'Inter', sans-serif; 
-    }
-    
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: var(--bg-base); }
-    ::-webkit-scrollbar-thumb { background: #2A2F3D; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+def inject_custom_css():
+    st.markdown("""
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        /* Global Variables & Typography */
+        :root {
+            --bg-base: #0B0E14;
+            --bg-panel: #151A23;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --accent-primary: #10B981;
+            --accent-hover: #059669;
+            --accent-glow: rgba(16, 185, 129, 0.3);
+            --border-color: #2D3748;
+        }
+        
+        .stApp { background-color: var(--bg-base); color: var(--text-main); font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { color: var(--text-main) !important; font-weight: 700 !important; letter-spacing: -0.03em; }
+        p { color: var(--text-muted); line-height: 1.6; }
+        
+        /* Sidebar Styling */
+        [data-testid="stSidebar"] { background-color: var(--bg-panel); border-right: 1px solid var(--border-color); }
+        [data-testid="stSidebar"] hr { border-color: var(--border-color); }
+        
+        /* Custom Buttons */
+        .stButton > button {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+            color: #FFFFFF !important;
+            border: none !important;
+            border-radius: 12px !important;
+            font-weight: 600 !important;
+            padding: 0.75rem 2rem !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 0 4px 12px var(--accent-glow);
+            width: 100%;
+        }
+        .stButton > button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+        
+        /* Metric Cards - Glassmorphism */
+        [data-testid="metric-container"] {
+            background: rgba(21, 26, 35, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+        [data-testid="metric-container"]:hover {
+            transform: translateY(-4px);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+        [data-testid="stMetricValue"] { font-size: 2.5rem !important; font-weight: 800 !important; color: var(--accent-primary) !important; font-family: 'JetBrains Mono', monospace; }
+        [data-testid="stMetricLabel"] { font-size: 1rem !important; color: var(--text-muted) !important; font-weight: 500 !important; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Dataframes & Tables */
+        [data-testid="stDataFrame"] { border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); background: var(--bg-panel); }
+        
+        /* Tabs Styling */
+        [data-testid="stTabs"] { background: transparent; }
+        [data-baseweb="tab-list"] { gap: 1rem; background-color: var(--bg-panel); padding: 0.5rem; border-radius: 12px; border: 1px solid var(--border-color); }
+        [data-baseweb="tab"] { background-color: transparent; border-radius: 8px; padding: 0.5rem 1rem; color: var(--text-muted); font-weight: 600; border: none; }
+        [aria-selected="true"] { background-color: rgba(16, 185, 129, 0.15) !important; color: var(--accent-primary) !important; }
+        
+        /* Advanced Globe Animation */
+        .globe-wrapper { display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 2rem; }
+        .hologram-globe {
+            width: 240px; height: 240px; border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #34D399, #10B981, #064E3B);
+            box-shadow: 0 0 40px rgba(16, 185, 129, 0.3), inset -15px -15px 30px rgba(0,0,0,0.6), inset 15px 15px 30px rgba(255,255,255,0.2);
+            animation: float 6s ease-in-out infinite, pulse-glow 4s ease-in-out infinite alternate;
+            display: flex; justify-content: center; align-items: center; text-align: center; position: relative;
+        }
+        .hologram-globe::after {
+            content: ''; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+            border-radius: 50%; border: 2px solid rgba(16, 185, 129, 0.1);
+            animation: spin 10s linear infinite;
+        }
+        .globe-value { font-family: 'JetBrains Mono', monospace; color: #FFFFFF; font-size: 2.2rem; font-weight: 900; text-shadow: 0px 4px 15px rgba(0,0,0,0.8); z-index: 2; }
+        .globe-subtitle { margin-top: 1.5rem; font-size: 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 3px; }
+        
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0px); } }
+        @keyframes pulse-glow { 0% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.2); } 100% { box-shadow: 0 0 60px rgba(16, 185, 129, 0.5); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        /* Chat UI Enhancements */
+        [data-testid="stChatMessage"] { background-color: var(--bg-panel); border-radius: 12px; padding: 1rem; border: 1px solid var(--border-color); margin-bottom: 1rem; }
+        [data-testid="stChatInput"] { background-color: var(--bg-panel) !important; border: 1px solid var(--accent-primary) !important; border-radius: 16px; box-shadow: 0 0 15px rgba(16, 185, 129, 0.1); }
+        [data-testid="stChatInput"] textarea { color: #FFFFFF !important; font-weight: 500; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    /* Headings */
-    h1, h2, h3, h4 { color: #FFFFFF !important; font-weight: 700 !important; letter-spacing: -0.03em; }
-    
-    /* Streamlit Sidebar */
-    [data-testid="stSidebar"] { 
-        background-color: #0E1117 !important; 
-        border-right: 1px solid var(--border-color);
-    }
-    
-    /* Buttons - Primary & Secondary */
-    .stButton>button {
-        background: linear-gradient(135deg, #1DB954 0%, #118239 100%) !important;
-        color: #FFFFFF !important;
-        border: 1px solid rgba(255,255,255,0.1) !important; 
-        border-radius: 12px !important; 
-        font-weight: 600 !important;
-        padding: 0.6rem 2rem !important; 
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
-        box-shadow: 0 4px 15px var(--primary-glow);
-    }
-    .stButton>button:hover { 
-        transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 8px 25px var(--primary-glow);
-        border: 1px solid #1DB954 !important;
-    }
-    
-    /* Glassmorphism Metric Cards */
-    [data-testid="metric-container"] {
-        background: var(--bg-panel);
-        border: 1px solid var(--border-color);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        transition: transform 0.3s ease, border-color 0.3s ease;
-        animation: fade-in-up 0.6s ease-out forwards;
-    }
-    [data-testid="metric-container"]:hover {
-        transform: translateY(-5px);
-        border-color: rgba(29, 185, 84, 0.5);
-    }
-    [data-testid="stMetricValue"] {
-        font-family: 'JetBrains Mono', monospace !important;
-        font-size: 2.5rem !important;
-        font-weight: 800 !important;
-        color: var(--primary) !important;
-        text-shadow: 0 0 20px rgba(29, 185, 84, 0.2);
-    }
-    [data-testid="stMetricLabel"] {
-        font-size: 1.1rem !important;
-        color: var(--text-muted) !important;
-        font-weight: 500 !important;
-    }
-    
-    /* Data Editor / Dataframes */
-    [data-testid="stDataFrame"] { 
-        border-radius: 16px; 
-        overflow: hidden;
-        border: 1px solid var(--border-color);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-    
-    /* Advanced Wealth Globe Animation */
-    .globe-container { 
-        display: flex; justify-content: center; align-items: center; 
-        flex-direction: column; margin: 2rem 0; 
-        padding: 2rem; background: var(--bg-panel);
-        border-radius: 24px; border: 1px solid var(--border-color);
-    }
-    .globe {
-        width: 220px; height: 220px; border-radius: 50%;
-        background: radial-gradient(circle at 35% 35%, #24E269, #1DB954, #0A421D, #000000);
-        box-shadow: 0 0 40px rgba(29, 185, 84, 0.3), inset -15px -15px 30px rgba(0,0,0,0.6);
-        animation: float-pulse 6s ease-in-out infinite; 
-        display: flex; justify-content: center; align-items: center; 
-        text-align: center; position: relative; cursor: pointer;
-    }
-    .globe::after {
-        content: ''; position: absolute; top: -5%; left: -5%; right: -5%; bottom: -5%;
-        border-radius: 50%; border: 2px dashed rgba(29, 185, 84, 0.3);
-        animation: spin 20s linear infinite;
-    }
-    .globe-text { 
-        position: absolute; color: #FFFFFF; font-family: 'JetBrains Mono', monospace;
-        font-size: 2.2rem; font-weight: 800; text-shadow: 0px 4px 15px rgba(0,0,0,0.8); z-index: 2; 
-    }
-    .globe-label { 
-        margin-top: 20px; font-size: 1rem; color: var(--text-muted); 
-        font-weight: 700; text-transform: uppercase; letter-spacing: 3px; 
-    }
-
-    /* Keyframes */
-    @keyframes float-pulse { 
-        0% { box-shadow: 0 0 20px rgba(29, 185, 84, 0.2); transform: translateY(0) scale(1); } 
-        50% { box-shadow: 0 0 60px rgba(29, 185, 84, 0.6); transform: translateY(-10px) scale(1.02); }
-        100% { box-shadow: 0 0 20px rgba(29, 185, 84, 0.2); transform: translateY(0) scale(1); } 
-    }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-    @keyframes fade-in-up { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-    
-    /* Tabs styling */
-    [data-testid="stTabs"] [data-baseweb="tab-list"] {
-        gap: 8px; background-color: var(--bg-panel); padding: 8px;
-        border-radius: 12px; border: 1px solid var(--border-color);
-    }
-    [data-testid="stTabs"] [data-baseweb="tab"] {
-        border-radius: 8px; padding: 10px 24px; color: var(--text-muted);
-    }
-    [data-testid="stTabs"] [aria-selected="true"] {
-        background-color: rgba(29, 185, 84, 0.1); color: var(--primary); font-weight: 600;
-    }
-
-    /* Chat Elements */
-    [data-testid="stChatMessage"] { background: var(--bg-panel); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); }
-    [data-testid="stChatInput"] { background-color: #0E1117 !important; border: 1px solid rgba(255,255,255,0.2) !important; border-radius: 16px; }
-</style>
-""", unsafe_allow_html=True)
+inject_custom_css()
 
 # ==========================================
-# 3. STATE INITIALIZATION & LOGIC
+# 3. STATE MANAGEMENT & INITIALIZATION
 # ==========================================
-if "setup_complete" not in st.session_state:
-    st.session_state.setup_complete = False
+def init_state():
+    defaults = {
+        "setup_complete": False,
+        "expenses_df": pd.DataFrame([{"Category": "Pending Setup...", "Amount": 0.0}]),
+        "chat_history": [{"role": "assistant", "content": "💠 **Terminal Active.** Enter your income and list your expenses. I will architect your budget."}],
+        "wealth_tier": "Unranked",
+        "split_ratios": {"Savings": 20, "Short_Term": 30, "Long_Term": 50}
+    }
+    for key, val in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = val
 
-if "expenses_df" not in st.session_state:
-    # Richer default dataset for better initial chart rendering
-    st.session_state.expenses_df = pd.DataFrame([
-        {"Category": "Housing", "Amount": 0.0},
-        {"Category": "Food & Dining", "Amount": 0.0},
-        {"Category": "Transportation", "Amount": 0.0},
-        {"Category": "Utilities", "Amount": 0.0},
-        {"Category": "Entertainment", "Amount": 0.0},
-        {"Category": "Investments", "Amount": 0.0}
-    ])
-
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [
-        {"role": "assistant", "content": "👋 **Welcome to FinAI OS!** Let's build your financial fortress. Tell me your monthly income and detail your expenses. I'll automatically generate your zero-based budget."}
-    ]
-
-# Core Financial State
-if "income" not in st.session_state: st.session_state.income = 5000.0
-if "savings_goal" not in st.session_state: st.session_state.savings_goal = 1500.0
+init_state()
 
 # ==========================================
-# 4. SIDEBAR CONFIGURATION
+# 4. CORE FINANCIAL LOGIC & HELPERS
+# ==========================================
+def get_wealth_tier(savings_rate):
+    if savings_rate >= 0.50: return "💎 Diamond (FIRE Achiever)"
+    elif savings_rate >= 0.30: return "🥇 Gold (Wealth Builder)"
+    elif savings_rate >= 0.15: return "🥈 Silver (Solid Foundation)"
+    elif savings_rate > 0.0: return "🥉 Bronze (Getting Started)"
+    return "⚠️ Unranked (Action Required)"
+
+def calc_metrics(df, income):
+    df_clean = df.copy()
+    df_clean["Amount"] = pd.to_numeric(df_clean["Amount"], errors="coerce").fillna(0)
+    
+    total_allocated = df_clean["Amount"].sum()
+    unallocated = income - total_allocated
+    
+    # Identify savings/investments based on keywords
+    savings_keywords = "invest|sav|emergency|short-term|long-term|stocks|crypto|roth"
+    savings_mask = df_clean["Category"].str.contains(savings_keywords, case=False, na=False)
+    
+    actual_savings = df_clean.loc[savings_mask, "Amount"].sum() + (unallocated if unallocated > 0 else 0)
+    savings_rate = actual_savings / income if income > 0 else 0
+    
+    return total_allocated, unallocated, actual_savings, savings_rate
+
+# ==========================================
+# 5. SIDEBAR NAVIGATION & SETTINGS
 # ==========================================
 with st.sidebar:
-    st.markdown("""
-        <div style='text-align: center; margin-bottom: 20px;'>
-            <h1 style='color: #1DB954; font-size: 2.5rem; margin-bottom: 0;'>FinAI OS</h1>
-            <p style='color: #8B949E; font-size: 0.9rem;'>Smart Wealth Engine v2.0</p>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("## 💠 FinAI Enterprise")
+    st.caption("v2.0.0 | AI Wealth Architect")
+    st.divider()
     
-    st.markdown("### 🔑 Authentication")
-    api_key = st.text_input("Gemini API Key", type="password", help="Required to activate the AI Advisor")
+    api_key = st.text_input("Gemini API Key", type="password")
     
-    st.markdown("### ⚙️ Preferences")
+    st.markdown("### ⚙️ Global Settings")
     currency_choice = st.selectbox("Base Currency", ["USD ($)", "INR (₹)", "EUR (€)", "GBP (£)", "Custom"])
-    currency_sym = st.text_input("Custom Symbol", value="¤") if currency_choice == "Custom" else currency_choice.split("(")[1].replace(")", "")
+    curr = st.text_input("Custom Symbol", value="¤") if currency_choice == "Custom" else currency_choice.split("(")[1].replace(")", "")
+    
+    income = st.number_input(f"Monthly Income ({curr})", min_value=0.0, value=5000.0, step=100.0)
+    savings_goal = st.number_input(f"Savings Target ({curr})", min_value=0.0, value=1500.0, step=100.0)
     
     st.divider()
+    st.markdown("### 📊 Portfolio Target Ratios")
+    st.caption("How your unallocated funds are split.")
+    st.session_state.split_ratios["Savings"] = st.slider("Liquid Savings (%)", 0, 100, st.session_state.split_ratios["Savings"])
+    st.session_state.split_ratios["Short_Term"] = st.slider("Short-Term Investing (%)", 0, 100, st.session_state.split_ratios["Short_Term"])
+    st.session_state.split_ratios["Long_Term"] = st.slider("Long-Term Investing (%)", 0, 100, st.session_state.split_ratios["Long_Term"])
     
-    # Financial Inputs in Sidebar for global access
-    st.markdown("### 💰 Core Income")
-    st.session_state.income = st.number_input(f"Monthly Income ({currency_sym})", min_value=0.0, value=st.session_state.income, step=100.0)
-    st.session_state.savings_goal = st.number_input(f"Savings Target ({currency_sym})", min_value=0.0, value=st.session_state.savings_goal, step=100.0)
-
+    # Auto-balance validator
+    total_ratio = sum(st.session_state.split_ratios.values())
+    if total_ratio != 100:
+        st.warning(f"Ratios total {total_ratio}%. Must equal 100%.")
+    
     st.divider()
-    if api_key:
-        st.success("🟢 AI Engine Online")
-    else:
-        st.warning("🔴 AI Engine Offline (Key needed)")
+    st.markdown("### 🔋 System Status")
+    if api_key: st.success("Neural Link: ONLINE")
+    else: st.error("Neural Link: OFFLINE (Key Required)")
+
+# Calculate Core Data
+total_alloc, unalloc, total_wealth, sav_rate = calc_metrics(st.session_state.expenses_df, income)
+st.session_state.wealth_tier = get_wealth_tier(sav_rate)
 
 # ==========================================
-# 5. CORE CALCULATIONS
+# 6. MAIN DASHBOARD HEADER
 # ==========================================
-df = st.session_state.expenses_df
-total_allocated = df["Amount"].sum()
-unallocated_balance = st.session_state.income - total_allocated
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.title("Command Center")
+    st.markdown(f"**Current Status:** Building Wealth | **Tier:** {st.session_state.wealth_tier}")
+with col2:
+    if st.button("🔄 Hard Reset Data", use_container_width=True):
+        st.session_state.expenses_df = pd.DataFrame([{"Category": "Pending Setup...", "Amount": 0.0}])
+        st.session_state.setup_complete = False
+        st.rerun()
 
-# Intelligent Savings Identification
-savings_keywords = ["invest", "sav", "emergency", "stock", "crypto", "401k", "ira"]
-savings_mask = df["Category"].str.contains('|'.join(savings_keywords), case=False, na=False)
-actual_savings = df.loc[savings_mask, "Amount"].sum() + (unallocated_balance if unallocated_balance > 0 else 0)
-
-health_score = min(100, max(0, int((actual_savings / st.session_state.income) * 333))) if st.session_state.income > 0 else 0
-
-# ==========================================
-# 6. MAIN APPLICATION LAYOUT (TABS)
-# ==========================================
-st.markdown("<h2 style='text-align: center; color: #8B949E; font-weight: 300;'>Welcome to your <span style='color: #1DB954; font-weight: 700;'>Command Center</span></h2>", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4 = st.tabs(["📊 Executive Dashboard", "📝 Budget Editor", "📈 Wealth Analytics", "🤖 AI Advisor"])
+# ==========================================
+# 7. TABBED INTERFACE
+# ==========================================
+tab_dash, tab_budget, tab_wealth, tab_ai = st.tabs([
+    "🌐 Hologram Dashboard", 
+    "💰 Budget Engine", 
+    "📈 Wealth Allocator", 
+    "🤖 Neural Advisor"
+])
 
 # ------------------------------------------
-# TAB 1: EXECUTIVE DASHBOARD
+# TAB 1: HOLOGRAM DASHBOARD & CHARTS
 # ------------------------------------------
-with tab1:
-    col_g1, col_g2, col_g3 = st.columns([1, 1.2, 1])
+with tab_dash:
+    metric_cols = st.columns(3)
+    metric_cols[0].metric("Total Income", f"{curr}{income:,.2f}")
+    metric_cols[1].metric("Active Allocation", f"{curr}{total_alloc:,.2f}")
+    metric_cols[2].metric("Unallocated Capital", f"{curr}{unalloc:,.2f}", 
+                         delta="Deficit Risk" if unalloc < 0 else "Ready for Sweep", 
+                         delta_color="inverse" if unalloc < 0 else "normal")
     
-    with col_g1:
-        st.metric("Total Income", f"{currency_sym}{st.session_state.income:,.2f}")
-        st.metric("Total Allocated", f"{currency_sym}{total_allocated:,.2f}")
-        st.metric("Financial Health Score", f"{health_score}/100")
-        
-    with col_g2:
+    st.divider()
+    
+    dash_col1, dash_col2 = st.columns([1, 1.2])
+    with dash_col1:
         st.markdown(f"""
-        <div class="globe-container">
-            <div class="globe">
-                <div class="globe-text">{currency_sym}{actual_savings:,.0f}</div>
+        <div class="globe-wrapper">
+            <div class="hologram-globe">
+                <div class="globe-value">{curr}{total_wealth:,.0f}</div>
             </div>
-            <div class="globe-label">Total Monthly Wealth Gen</div>
+            <div class="globe-subtitle">Secured Net Wealth</div>
         </div>
         """, unsafe_allow_html=True)
         
-        # Gamified progress bar
-        if st.session_state.savings_goal > 0:
-            progress = min(actual_savings / st.session_state.savings_goal, 1.0)
-            st.markdown(f"**Goal Trajectory:** {progress*100:.1f}%")
-            st.progress(progress)
+    with dash_col2:
+        if st.session_state.setup_complete and len(st.session_state.expenses_df) > 1:
+            st.markdown("### Expense Distribution")
+            df_plot = st.session_state.expenses_df.copy()
+            df_plot = df_plot[df_plot["Amount"] > 0]
             
-    with col_g3:
-        st.metric("Unallocated Capital", f"{currency_sym}{unallocated_balance:,.2f}")
-        
-        if unallocated_balance > 0:
-            st.info(f"💡 You have {currency_sym}{unallocated_balance:,.2f} sitting idle. Put it to work.")
-            if st.button("🚀 Sweep to Investments", key="dash_sweep"):
-                if "Investments" in df["Category"].values:
-                    st.session_state.expenses_df.loc[st.session_state.expenses_df["Category"] == "Investments", "Amount"] += unallocated_balance
-                else:
-                    new_row = pd.DataFrame([{"Category": "Investments", "Amount": unallocated_balance}])
-                    st.session_state.expenses_df = pd.concat([st.session_state.expenses_df, new_row], ignore_index=True)
-                st.rerun()
-        elif unallocated_balance < 0:
-            st.error(f"⚠️ Deficit: {currency_sym}{abs(unallocated_balance):,.2f}. Adjust budget immediately.")
-        else:
-            st.success("🎯 Zero-Based Budget Optimized.")
-
-# ------------------------------------------
-# TAB 2: BUDGET EDITOR
-# ------------------------------------------
-with tab2:
-    st.subheader("Interactive Ledger")
-    st.caption("Double click cells to edit. Changes reflect instantly across the ecosystem.")
-    
-    col_t1, col_t2 = st.columns([2, 1])
-    
-    with col_t1:
-        edited_df = st.data_editor(
-            st.session_state.expenses_df, 
-            num_rows="dynamic", 
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Category": st.column_config.TextColumn("Expense Category", required=True),
-                "Amount": st.column_config.NumberColumn(f"Amount ({currency_sym})", min_value=0.0, format="%.2f")
-            }
-        )
-        st.session_state.expenses_df = edited_df
-        
-    with col_t2:
-        st.markdown("### Ledger Rules")
-        st.markdown("""
-        * **Zero-Based:** Every dollar must have a specific job. 
-        * **Pay Yourself First:** Try to allocate at least 20% to the 'Investments' category.
-        * **Dynamic Sync:** Updating this table updates the AI's context window automatically.
-        """)
-        
-        if unallocated_balance != 0:
-            st.warning(f"Balance constraint violated. Offset: {currency_sym}{unallocated_balance:,.2f}")
-
-# ------------------------------------------
-# TAB 3: WEALTH ANALYTICS (PLOTLY)
-# ------------------------------------------
-with tab3:
-    st.subheader("Deep Data Visualization")
-    
-    if total_allocated > 0:
-        c1, c2 = st.columns(2)
-        
-        with c1:
-            # High-end Donut Chart
-            fig_donut = px.pie(
-                df[df["Amount"] > 0], 
-                names="Category", 
-                values="Amount", 
+            fig = px.pie(
+                df_plot, 
+                values='Amount', 
+                names='Category', 
                 hole=0.6,
-                color_discrete_sequence=px.colors.sequential.Greens_r
+                color_discrete_sequence=px.colors.sequential.Mint
             )
-            fig_donut.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)', 
-                paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#FAFAFA'),
-                title="Capital Allocation Breakdown",
-                title_font=dict(size=20),
-                margin=dict(t=50, b=20, l=20, r=20),
+            fig.update_layout(
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#94A3B8"),
+                margin=dict(t=20, b=20, l=0, r=0),
                 showlegend=True
             )
-            fig_donut.add_annotation(text=f"{currency_sym}{total_allocated:,.0f}", x=0.5, y=0.5, font_size=25, showarrow=False)
-            st.plotly_chart(fig_donut, use_container_width=True)
-            
-        with c2:
-            # Cash Flow Waterfall/Bar
-            categories = ['Income', 'Expenses', 'Savings', 'Unallocated']
-            values = [st.session_state.income, -total_allocated + df.loc[savings_mask, "Amount"].sum(), actual_savings, unallocated_balance]
-            colors = ['#1DB954', '#E91E63', '#2196F3', '#FFC107']
-            
-            fig_bar = go.Figure(data=[
-                go.Bar(x=categories, y=values, marker_color=colors, text=[f"{currency_sym}{abs(v):,.0f}" for v in values], textposition='auto')
-            ])
-            fig_bar.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#FAFAFA'),
-                title="Monthly Cash Flow Dynamics",
-                yaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-                margin=dict(t=50, b=20, l=20, r=20)
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
-            
-        # Projection Line Chart
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.subheader("10-Year Wealth Projection (Assuming 7% Annual Return)")
-        
-        months = np.arange(1, 121)
-        monthly_investment = actual_savings if actual_savings > 0 else 0
-        rate = 0.07 / 12
-        # Future value of a series formula
-        future_values = [monthly_investment * (((1 + rate)**m - 1) / rate) for m in months]
-        
-        fig_proj = go.Figure()
-        fig_proj.add_trace(go.Scatter(
-            x=months, y=future_values, 
-            mode='lines', 
-            line=dict(color='#1DB954', width=3),
-            fill='tozeroy', 
-            fillcolor='rgba(29, 185, 84, 0.2)'
-        ))
-        fig_proj.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#FAFAFA'),
-            xaxis_title="Months", yaxis_title=f"Portfolio Value ({currency_sym})",
-            yaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-            xaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-            margin=dict(t=20, b=40, l=40, r=20)
-        )
-        st.plotly_chart(fig_proj, use_container_width=True)
-
-    else:
-        st.info("No expense data available to visualize yet. Add data in the Budget Editor or ask the AI Advisor to build one.")
-
-# ------------------------------------------
-# TAB 4: AI ADVISOR
-# ------------------------------------------
-with tab4:
-    st.subheader("Neural Financial Advisor")
-    st.caption("Ask complex questions, parse messy text into budgets, or get investment strategies.")
-    
-    # Render chat history
-    for message in st.session_state.chat_history:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # Chat Input Trigger
-    if prompt := st.chat_input("E.g., 'I make 6k. Rent is 2k, car 500, groceries 600. Build my budget.'"):
-        if not api_key:
-            st.error("⚠️ API Key required. Please enter it in the sidebar.")
+            fig.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#151A23', width=2)))
+            st.plotly_chart(fig, use_container_width=True)
         else:
-            # Append user msg
+            st.info("Chart will generate once budget is populated via the Neural Advisor.")
+
+# ------------------------------------------
+# TAB 2: BUDGET ENGINE (DATA EDITOR)
+# ------------------------------------------
+with tab_budget:
+    st.subheader("Dynamic Ledger")
+    st.caption("Manually adjust your entries. AI generation will overwrite this grid.")
+    
+    edited_df = st.data_editor(
+        st.session_state.expenses_df,
+        num_rows="dynamic",
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Category": st.column_config.TextColumn("Expense Category", required=True),
+            "Amount": st.column_config.NumberColumn(f"Amount ({curr})", min_value=0.0, format="%.2f")
+        }
+    )
+    
+    if not edited_df.equals(st.session_state.expenses_df):
+        st.session_state.expenses_df = edited_df
+        st.rerun()
+
+# ------------------------------------------
+# TAB 3: WEALTH ALLOCATOR (THE SPLIT MECHANIC)
+# ------------------------------------------
+with tab_wealth:
+    st.subheader("Automated Wealth Distribution")
+    st.markdown("Route unallocated capital safely into **Savings**, **Short-Term**, and **Long-Term** portfolios.")
+    
+    if unalloc > 0:
+        if total_ratio != 100:
+            st.error(f"Cannot execute sweep. Check sidebar ratios. Current total: {total_ratio}%")
+        else:
+            st.success(f"**{curr}{unalloc:,.2f}** is awaiting distribution.")
+            
+            sweep_col1, sweep_col2, sweep_col3 = st.columns(3)
+            
+            val_savings = unalloc * (st.session_state.split_ratios["Savings"] / 100)
+            val_short = unalloc * (st.session_state.split_ratios["Short_Term"] / 100)
+            val_long = unalloc * (st.session_state.split_ratios["Long_Term"] / 100)
+            
+            sweep_col1.metric("💧 Liquid Savings", f"{curr}{val_savings:,.2f}", f"{st.session_state.split_ratios['Savings']}%")
+            sweep_col2.metric("📈 Short-Term Investing", f"{curr}{val_short:,.2f}", f"{st.session_state.split_ratios['Short_Term']}%")
+            sweep_col3.metric("🏛️ Long-Term Wealth", f"{curr}{val_long:,.2f}", f"{st.session_state.split_ratios['Long_Term']}%")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🚀 Execute Portfolio Sweep"):
+                # Append or update the specific categories
+                df = st.session_state.expenses_df
+                
+                def add_or_update(cat, amt):
+                    nonlocal df
+                    if cat in df["Category"].values:
+                        df.loc[df["Category"] == cat, "Amount"] += amt
+                    else:
+                        new_row = pd.DataFrame([{"Category": cat, "Amount": amt}])
+                        df = pd.concat([df, new_row], ignore_index=True)
+                
+                if val_savings > 0: add_or_update("Savings (Liquid)", val_savings)
+                if val_short > 0: add_or_update("Investments (Short-Term)", val_short)
+                if val_long > 0: add_or_update("Investments (Long-Term)", val_long)
+                
+                st.session_state.expenses_df = df
+                st.rerun()
+    elif unalloc < 0:
+        st.error(f"Cannot distribute wealth. You are currently running a deficit of {curr}{abs(unalloc):,.2f}.")
+    else:
+        st.info("Zero-Based Budget achieved. No unallocated funds remaining to sweep.")
+        
+    # Visualize current portfolio split
+    st.divider()
+    st.subheader("Current Portfolio Structure")
+    df_port = st.session_state.expenses_df
+    port_mask = df_port["Category"].str.contains("sav|invest|short|long", case=False, na=False)
+    port_data = df_port.loc[port_mask]
+    
+    if not port_data.empty and port_data["Amount"].sum() > 0:
+        fig_bar = px.bar(
+            port_data, 
+            x='Amount', 
+            y='Category', 
+            orientation='h',
+            color='Category',
+            color_discrete_sequence=px.colors.sequential.Emrld
+        )
+        fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#94A3B8"))
+        st.plotly_chart(fig_bar, use_container_width=True)
+    else:
+        st.caption("No wealth allocations detected yet. Execute a sweep or add investments in the Budget Engine.")
+
+# ------------------------------------------
+# TAB 4: NEURAL ADVISOR (AI CHAT)
+# ------------------------------------------
+with tab_ai:
+    st.subheader("FinAI Neural Network")
+    
+    chat_container = st.container(height=400)
+    with chat_container:
+        for msg in st.session_state.chat_history:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+                
+    if prompt := st.chat_input("Enter expenses or ask for financial advice..."):
+        if not api_key:
+            st.error("Please insert your Gemini API Key in the sidebar.")
+        else:
+            # Append user message
             st.session_state.chat_history.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
-
-            # API Call
+            with chat_container:
+                with st.chat_message("user"):
+                    st.markdown(prompt)
+                    
             client = genai.Client(api_key=api_key)
-            with st.chat_message("assistant"):
-                with st.spinner("Analyzing neural models..."):
-                    try:
-                        expense_str = df.to_string(index=False)
-                        
-                        sys_prompt = f"""
-                        You are FinAI, an elite, highly intelligent financial advisor.
-                        User's Stated Income: {currency_sym}{st.session_state.income}
-                        Current Unallocated: {currency_sym}{unallocated_balance}
-                        Current Budget Table:
-                        {expense_str}
-                        
-                        If the user is providing a list of expenses to start a budget, you MUST extract it as a JSON array.
-                        Format EXACTLY as: [{{"Category": "Rent", "Amount": 1000}}]
-                        If returning JSON, type exactly '===ADVICE===' immediately after the JSON block, followed by your textual advice.
-                        
-                        If the user is just asking a question, ignore the JSON and just answer intelligently, formatting your text with markdown (bolding, lists). Keep advice actionable and strictly related to finance.
-                        """
-                        
-                        response = client.models.generate_content(
-                            model="gemini-3.5-flash-lite", 
-                            contents=f"{sys_prompt}\n\nUser Input: {prompt}"
-                        )
-                        
-                        raw_text = response.text
-                        
-                        # Check if AI attempted to generate a budget JSON
-                        if "===ADVICE===" in raw_text:
-                            json_part, advice_part = raw_text.split("===ADVICE===")
-                            
-                            # Regex to safely find JSON array
-                            match = re.search(r'\[.*\]', json_part, re.DOTALL)
-                            if match:
-                                new_budget_df = pd.DataFrame(json.loads(match.group(0)))
-                                st.session_state.expenses_df = new_budget_df
-                                st.session_state.setup_complete = True
+            
+            with chat_container:
+                with st.chat_message("assistant"):
+                    with st.spinner("Processing financial data..."):
+                        try:
+                            if not st.session_state.setup_complete:
+                                # PHASE 1: Parse and Structure Initial Budget
+                                sys_prompt = f"""
+                                The user earns {curr}{income}. They are describing their expenses: "{prompt}"
                                 
-                                st.markdown(advice_part.strip())
-                                st.session_state.chat_history.append({"role": "assistant", "content": advice_part.strip()})
+                                Task 1: Extract expenses into a JSON array. 
+                                Task 2: If there is remaining money ({income} minus total expenses), DO NOT dump it all into one 'Investments' category. 
+                                Instead, split the remaining money into three specific categories:
+                                - "Savings (Liquid)" (20% of remainder)
+                                - "Investments (Short-Term)" (30% of remainder)
+                                - "Investments (Long-Term)" (50% of remainder)
                                 
-                                st.toast("New budget synchronized to OS!", icon="✅")
-                                time.sleep(1.5)
-                                st.rerun()
+                                Format EXACTLY as: [{{"Category": "Rent", "Amount": 1000}}]
+                                
+                                Task 3: Type exactly '===ADVICE===' after the JSON.
+                                
+                                Task 4: Provide a brief, punchy financial analysis covering their savings rate and immediate risks.
+                                """
+                                response = client.models.generate_content(model="gemini-3.5-flash-lite", contents=sys_prompt)
+                                
+                                if "===ADVICE===" in response.text:
+                                    json_part, advice_part = response.text.split("===ADVICE===")
+                                    match = re.search(r'\[.*\]', json_part, re.DOTALL)
+                                    
+                                    if match:
+                                        st.session_state.expenses_df = pd.DataFrame(json.loads(match.group(0)))
+                                        st.session_state.setup_complete = True
+                                        
+                                        st.markdown(advice_part.strip())
+                                        st.session_state.chat_history.append({"role": "assistant", "content": advice_part.strip()})
+                                        time.sleep(1.5)
+                                        st.rerun()
+                                    else:
+                                        msg = "Could not parse standard numbers. Please list as 'Rent 1000, Food 500'."
+                                        st.markdown(msg)
+                                        st.session_state.chat_history.append({"role": "assistant", "content": msg})
+                                else:
+                                    st.error("AI formulation error. Please retry.")
+                                    
                             else:
-                                msg = "I analyzed your input but failed to build the table. Please try formatting as: Rent 1000, Food 500."
-                                st.markdown(msg)
-                                st.session_state.chat_history.append({"role": "assistant", "content": msg})
-                        else:
-                            # Standard conversational response
-                            st.markdown(raw_text)
-                            st.session_state.chat_history.append({"role": "assistant", "content": raw_text})
-
-                    except Exception as e:
-                        st.error(f"System Error: {e}")
+                                # PHASE 2: Ongoing Chat Context
+                                exp_str = st.session_state.expenses_df.to_string(index=False)
+                                sys_prompt = f"""
+                                You are FinAI. 
+                                Income: {curr}{income} | Unallocated: {curr}{unalloc} | Wealth Tier: {st.session_state.wealth_tier}
+                                Budget: \n{exp_str}
+                                
+                                Answer directly, technically, and ruthlessly optimize their wealth. Keep it under 4 sentences.
+                                """
+                                response = client.models.generate_content(
+                                    model="gemini-3.5-flash-lite", 
+                                    contents=f"{sys_prompt}\n\nUser Question: {prompt}"
+                                )
+                                st.markdown(response.text)
+                                st.session_state.chat_history.append({"role": "assistant", "content": response.text})
+                                
+                        except Exception as e:
+                            st.error(f"Neural API Error: {e}")
+                                
