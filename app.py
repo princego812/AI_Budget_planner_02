@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 from google import genai
-import time
 import json
+import re
 
 # --- Page Configuration ---
 st.set_page_config(page_title="FinAI | Smart Wealth", page_icon="🟢", layout="wide")
@@ -101,21 +101,17 @@ st.markdown("""
     }
     
     /* --- Chat Input Box Customization --- */
-    /* Make the chat input background white so black text is visible */
     [data-testid="stChatInput"] {
         background-color: #FFFFFF !important;
         border-radius: 12px;
     }
-    /* Make the font color black inside the typing area */
     [data-testid="stChatInput"] textarea {
         color: #000000 !important;
         font-weight: 500;
     }
-    /* Make the send icon/button black so it contrasts against the white */
     [data-testid="stChatInput"] button {
         color: #000000 !important;
     }
-    /* Placeholder text styling (light gray so it doesn't clash) */
     [data-testid="stChatInput"] textarea::placeholder {
         color: #666666 !important;
     }
@@ -136,7 +132,7 @@ st.sidebar.code("""
 - Frontend: Streamlit
 - UI/UX: Dark Mode Custom CSS
 - Engine: Pandas
-- AI: Gemini 3.5 Flash
+- AI: Gemini 2.5 Flash
 """, language="markdown")
 
 st.sidebar.divider()
@@ -144,7 +140,7 @@ api_key = st.sidebar.text_input("Gemini API Key", type="password")
 
 # Currency Selector
 currency_choice = st.sidebar.selectbox("Select Currency", ["USD ($)", "INR (₹)", "EUR (€)", "GBP (£)", "Custom"])
-currency_sym = st.text_input("Custom Symbol", value="¤") if currency_choice == "Custom" else currency_choice.split("(")[1].replace(")", "")
+currency_sym = st.sidebar.text_input("Custom Symbol", value="¤") if currency_choice == "Custom" else currency_choice.split("(")[1].replace(")", "")
 
 # --- 1. Core Inputs ---
 st.title("AI Budget Terminal")
@@ -155,7 +151,7 @@ with col1:
 with col2:
     savings_goal = st.number_input(f"Savings Target ({currency_sym})", min_value=0.0, value=1000.0, step=100.0)
 
-# Initialize DataFrame with 'Traveling' expense included
+# Initialize DataFrame
 if "expenses_df" not in st.session_state:
     st.session_state.expenses_df = pd.DataFrame([
         {"Category": "Housing", "Amount": 1500.0},
@@ -169,9 +165,9 @@ if "expenses_df" not in st.session_state:
 
 # --- 2. Auto-Allocate Button ---
 st.subheader("AI Auto-Allocator")
-if st.button("Auto-Balance My Budget"):
+if st.button("Auto-Balance My Budget", type="primary"):
     if not api_key:
-        st.warning("API Key required.")
+        st.warning("⚠️ API Key required. Please enter it in the sidebar.")
     else:
         with st.spinner("Calculating optimal zero-based budget..."):
             client = genai.Client(api_key=api_key)
@@ -179,18 +175,21 @@ if st.button("Auto-Balance My Budget"):
             Income: {income}. Create a realistic budget. 
             MUST include "Traveling", "Fun Money", "Investments", and "Emergency Fund".
             Total must equal exactly {income}.
-            Respond ONLY with a JSON array. Example: [{{"Category": "Housing", "Amount": 1500.0}}]
+            Respond ONLY with a valid JSON array of objects with "Category" and "Amount" keys. 
+            Example: [{{"Category": "Housing", "Amount": 1500.0}}]
             """
             try:
-                response = client.models.generate_content(model="gemini-3.5-flash", contents=prompt)
+                # Updated to gemini-2.5-flash as the current standard fast model
+                response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
                 
-                # SAFELY parse the JSON response
-                raw_text = response.text.replace("```json", "").replace("```", "").strip()
-                start = raw_text.find('[')
-                end = raw_text.rfind(']') + 1
-                
-                st.session_state.expenses_df = pd.DataFrame(json.loads(raw_text[start:end]))
-                st.rerun()
+                # Safely parse JSON using regex to handle markdown wrappers
+                match = re.search(r'\[.*\]', response.text, re.DOTALL)
+                if match:
+                    json_str = match.group(0)
+                    st.session_state.expenses_df = pd.DataFrame(json.loads(json_str))
+                    st.rerun()
+                else:
+                    st.error("AI returned an invalid format. Please try again.")
             except Exception as e:
                 st.error(f"Failed to auto-allocate: {e}")
 
@@ -204,6 +203,14 @@ total_allocated = edited_df["Amount"].sum()
 unallocated_balance = income - total_allocated
 savings_mask = edited_df["Category"].str.contains("invest|sav|emergency", case=False, na=False)
 actual_savings = edited_df.loc[savings_mask, "Amount"].sum() + (unallocated_balance if unallocated_balance > 0 else 0)
+
+# Provide human-readable budget context alerts
+if unallocated_balance < 0:
+    st.error(f"⚠️ You are over budget by {currency_sym}{abs(unallocated_balance):,.2f}!")
+elif unallocated_balance > 0:
+    st.info(f"💡 You have {currency_sym}{unallocated_balance:,.2f} unallocated. Consider assigning this to 'Investments' or 'Emergency Fund'.")
+else:
+    st.success("🎯 Perfect Zero-Based Budget Achieved!")
 
 # --- 4. The Green Globe Dashboard ---
 st.markdown("---")
@@ -260,7 +267,7 @@ if prompt := st.chat_input("Ask about your budget, investments, or travel hacks.
                     full_prompt = f"{system_context}\n\nUser Question: {prompt}"
                     
                     response = client.models.generate_content(
-                        model="gemini-3.5-flash",
+                        model="gemini-2.5-flash",
                         contents=full_prompt
                     )
                     
